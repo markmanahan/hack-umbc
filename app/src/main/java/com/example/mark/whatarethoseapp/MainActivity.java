@@ -19,18 +19,12 @@ import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.Toast;
 
-import com.google.firebase.auth.AuthCredential;
-import com.google.firebase.auth.AuthResult;
-import com.google.firebase.auth.EmailAuthProvider;
 import com.google.firebase.auth.FirebaseAuth;
-import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.storage.FirebaseStorage;
 import com.google.firebase.storage.StorageReference;
 import com.google.firebase.storage.UploadTask;
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.gms.tasks.OnFailureListener;
-import com.google.android.gms.tasks.OnCompleteListener;
-import com.google.android.gms.tasks.Task;
 
 import java.io.File;
 import java.io.IOException;
@@ -53,11 +47,10 @@ public class MainActivity extends AppCompatActivity {
 
     StorageReference storage_reference;
     StorageReference photo_reference;
-    StorageReference photo_images_reference;
 
     UploadTask upload_task;
 
-    private FirebaseAuth authorization;
+    FirebaseAuth authorization;
 
 
     @Override
@@ -82,68 +75,11 @@ public class MainActivity extends AppCompatActivity {
 
         }
 
+        // Firebase setup
         authorization = FirebaseAuth.getInstance();
-
         storage_reference = FirebaseStorage.getInstance().getReference();
 
     }
-
-    @Override
-    public void onStart() {
-        super.onStart();
-        // Check if user is signed in (non-null) and update UI accordingly.
-        FirebaseUser current_user = authorization.getCurrentUser();
-    }
-
-    private void signInAnonymously() {
-        // [START signin_anonymously]
-        authorization.signInAnonymously()
-                .addOnCompleteListener(this, new OnCompleteListener<AuthResult>() {
-                    @Override
-                    public void onComplete(@NonNull Task<AuthResult> task) {
-                        if (task.isSuccessful()) {
-                            // Sign in success, update UI with the signed-in user's information
-                            FirebaseUser user = authorization.getCurrentUser();
-                        } else {
-                            // If sign in fails, display a message to the user.
-                            Toast.makeText(MainActivity.this, "Authentication failed.",
-                                    Toast.LENGTH_SHORT).show();
-                        }
-
-                        // [START_EXCLUDE]
-                        // [END_EXCLUDE]
-                    }
-                });
-        // [END signin_anonymously]
-    }
-
-//    private void signOut() {
-//        authorization.signOut();
-//    }
-//
-//    private void linkAccount() {
-//
-//        // Create EmailAuthCredential with email and password
-//        AuthCredential credential = EmailAuthProvider.getCredential("mmm5ja@virginia.edu", "firebase");
-//
-//        // [START link_credential]
-//        authorization.getCurrentUser().linkWithCredential(credential)
-//                .addOnCompleteListener(this, new OnCompleteListener<AuthResult>() {
-//                    @Override
-//                    public void onComplete(@NonNull Task<AuthResult> task) {
-//                        if (task.isSuccessful()) {
-//                            FirebaseUser user = task.getResult().getUser();
-//                        } else {
-//                            Toast.makeText(MainActivity.this, "Authentication failed.",
-//                                    Toast.LENGTH_SHORT).show();
-//                        }
-//
-//                        // [START_EXCLUDE]
-//                        // [END_EXCLUDE]
-//                    }
-//                });
-//        // [END link_credential]
-//    }
 
     @Override
     public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
@@ -168,11 +104,13 @@ public class MainActivity extends AppCompatActivity {
     }
 
 
-    public void takePhoto(View view) throws IOException {
+    public void takePhoto(View view) {
 
         Intent takePictureIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
+
         // Ensure that there's a camera activity to handle the intent
         if (takePictureIntent.resolveActivity(getPackageManager()) != null) {
+
             // Create the File where the photo should go
             File photoFile = null;
             try {
@@ -181,15 +119,19 @@ public class MainActivity extends AppCompatActivity {
                 // Error occurred while creating the File
                 Log.d("MainActivity", "Error Creating Camera File");
             }
+
             // Continue only if the File was successfully created
             if (photoFile != null) {
+
                 Uri photoURI = FileProvider.getUriForFile(this,
                         "com.example.android.fileprovider",
                         photoFile);
                 file = photoURI;
                 takePictureIntent.putExtra(MediaStore.EXTRA_OUTPUT, photoURI);
                 startActivityForResult(takePictureIntent, REQUEST_TAKE_PHOTO);
+
             }
+
         }
 
     }
@@ -210,11 +152,10 @@ public class MainActivity extends AppCompatActivity {
 
     public void toSearchActivity(View view) {
 
-        //signInAnonymously();
-
+        // create reference to photo in Firebase
         photo_reference = storage_reference.child(photo_id);
-        //photo_images_reference = storage_reference.child("images/" + photo_id);
 
+        // Convert photo to byte array
         shoe_image_view.setDrawingCacheEnabled(true);
         shoe_image_view.buildDrawingCache();
         Bitmap bitmap = ((BitmapDrawable) shoe_image_view.getDrawable()).getBitmap();
@@ -222,6 +163,7 @@ public class MainActivity extends AppCompatActivity {
         bitmap.compress(Bitmap.CompressFormat.JPEG, 100, baos);
         byte[] data = baos.toByteArray();
 
+        // Upload photo as byte array to Firebase
         upload_task = photo_reference.putBytes(data);
         upload_task.addOnFailureListener(new OnFailureListener() {
             @Override
@@ -236,8 +178,7 @@ public class MainActivity extends AppCompatActivity {
                     public void onSuccess(Uri uri) {
                         Uri downloadUrl = uri;
                         Toast.makeText(getBaseContext(),
-                                "Upload success! URL - " + downloadUrl.toString(),
-                                Toast.LENGTH_SHORT).show();
+                                "Upload success!", Toast.LENGTH_SHORT).show();
                         download_url = downloadUrl.toString();
                     }
                 });
@@ -245,8 +186,7 @@ public class MainActivity extends AppCompatActivity {
         });
 
         Intent intent = new Intent(this, SearchActivity.class);
-
-        intent.putExtra("photo_path", mCurrentPhotoPath);
+        intent.putExtra("download_url", download_url);
 
         startActivity(intent);
 
