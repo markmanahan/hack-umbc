@@ -1,4 +1,4 @@
-package com.example.mark.whatarethose;
+package com.example.mark.whatarethoseapp;
 
 import android.os.Bundle;
 import android.support.design.widget.FloatingActionButton;

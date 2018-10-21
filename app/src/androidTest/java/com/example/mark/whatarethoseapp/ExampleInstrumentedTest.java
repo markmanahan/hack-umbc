@@ -1,4 +1,4 @@
-package com.example.mark.whatarethose;
+package com.example.mark.whatarethoseapp;
 
 import android.content.Context;
 import android.support.test.InstrumentationRegistry;

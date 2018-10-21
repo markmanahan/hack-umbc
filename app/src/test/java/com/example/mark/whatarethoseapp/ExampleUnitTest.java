@@ -1,4 +1,4 @@
-package com.example.mark.whatarethose;
+package com.example.mark.whatarethoseapp;
 
 import org.junit.Test;
 
