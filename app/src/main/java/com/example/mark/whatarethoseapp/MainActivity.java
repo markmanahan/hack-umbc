@@ -186,6 +186,7 @@ public class MainActivity extends AppCompatActivity {
         });
 
         Intent intent = new Intent(this, SearchActivity.class);
+        intent.putExtra("photo_path", mCurrentPhotoPath);
         intent.putExtra("download_url", download_url);
 
         startActivity(intent);
