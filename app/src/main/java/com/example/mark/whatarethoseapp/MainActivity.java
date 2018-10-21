@@ -3,6 +3,7 @@ package com.example.mark.whatarethoseapp;
 import android.graphics.Bitmap;
 import android.graphics.drawable.BitmapDrawable;
 import android.support.annotation.NonNull;
+import android.support.v4.content.FileProvider;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.content.Intent;
@@ -12,6 +13,7 @@ import android.os.Environment;
 import android.provider.MediaStore;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
+import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.ImageView;
@@ -31,22 +33,22 @@ import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
 
 import java.io.File;
+import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.io.ByteArrayOutputStream;
 
 public class MainActivity extends AppCompatActivity {
 
-    static final int TAKE_PHOTO_PERMISSION = 1;
-    static final int REQUEST_TAKE_PHOTO = 2;
+    static final int REQUEST_TAKE_PHOTO = 1;
 
     ImageView shoe_image_view;
     Button take_photo_button;
 
-    static String photo_path = "";
     static String photo_id = "";
     static String download_url = "";
 
+    String mCurrentPhotoPath;
     Uri file;
 
     StorageReference storage_reference;
@@ -76,7 +78,7 @@ public class MainActivity extends AppCompatActivity {
             ActivityCompat.requestPermissions(this,
                     new String[] {  android.Manifest.permission.CAMERA,
                                     android.Manifest.permission.WRITE_EXTERNAL_STORAGE },
-                                    TAKE_PHOTO_PERMISSION);
+                                    REQUEST_TAKE_PHOTO);
 
         }
 
@@ -147,7 +149,7 @@ public class MainActivity extends AppCompatActivity {
     public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
 
         // Grant photo permission
-        if (requestCode == TAKE_PHOTO_PERMISSION) {
+        if (requestCode == REQUEST_TAKE_PHOTO) {
 
             if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED
                     && grantResults[1] == PackageManager.PERMISSION_GRANTED)
@@ -165,43 +167,53 @@ public class MainActivity extends AppCompatActivity {
 
     }
 
-    public void takePhoto(View view) {
 
-        Intent intent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
+    public void takePhoto(View view) throws IOException {
 
-        file = Uri.fromFile(getOutputMediaFile());
-        intent.putExtra(MediaStore.EXTRA_OUTPUT, file);
-
-        startActivityForResult(intent, REQUEST_TAKE_PHOTO);
+        Intent takePictureIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
+        // Ensure that there's a camera activity to handle the intent
+        if (takePictureIntent.resolveActivity(getPackageManager()) != null) {
+            // Create the File where the photo should go
+            File photoFile = null;
+            try {
+                photoFile = getOutputMediaFile();
+            } catch (IOException ex) {
+                // Error occurred while creating the File
+                Log.d("MainActivity", "Error Creating Camera File");
+            }
+            // Continue only if the File was successfully created
+            if (photoFile != null) {
+                Uri photoURI = FileProvider.getUriForFile(this,
+                        "com.example.android.fileprovider",
+                        photoFile);
+                file = photoURI;
+                takePictureIntent.putExtra(MediaStore.EXTRA_OUTPUT, photoURI);
+                startActivityForResult(takePictureIntent, REQUEST_TAKE_PHOTO);
+            }
+        }
 
     }
 
-    private static File getOutputMediaFile(){
-
-        File mediaStorageDir = new File(Environment.getExternalStoragePublicDirectory(
-                Environment.DIRECTORY_PICTURES), "CameraDemo");
-
-        if (!mediaStorageDir.exists())
-            if (!mediaStorageDir.mkdirs())
-                return null;
+    private File getOutputMediaFile() throws IOException {
 
         String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
+        String imageFileName = "JPEG_" + timeStamp + "_";
+        File storageDir = getExternalFilesDir(Environment.DIRECTORY_PICTURES);
 
-        photo_path = mediaStorageDir.getPath() + File.separator +
-                "IMG_"+ timeStamp + ".jpg";
+        File image = File.createTempFile(imageFileName, ".jpg", storageDir);
 
-        photo_id = "IMG_" + timeStamp + ".jpg";
-
-        return new File(photo_path);
+        mCurrentPhotoPath = image.getAbsolutePath();
+        photo_id = image.getName();
+        return image;
 
     }
 
     public void toSearchActivity(View view) {
 
-        signInAnonymously();
+        //signInAnonymously();
 
         photo_reference = storage_reference.child(photo_id);
-        photo_images_reference = storage_reference.child("images/" + photo_id);
+        //photo_images_reference = storage_reference.child("images/" + photo_id);
 
         shoe_image_view.setDrawingCacheEnabled(true);
         shoe_image_view.buildDrawingCache();
@@ -234,7 +246,7 @@ public class MainActivity extends AppCompatActivity {
 
         Intent intent = new Intent(this, SearchActivity.class);
 
-        intent.putExtra("photo_path", photo_path);
+        intent.putExtra("photo_path", mCurrentPhotoPath);
 
         startActivity(intent);
 
