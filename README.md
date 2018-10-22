@@ -1,6 +1,6 @@
 # what-are-those
 
-Contributors: Mark Manahan (markmanahan) and Jared Montalbo (jaredmontalbo)
+Contributors: Mark Manahan and Jared Montalbo (github.com/jaredmontalbo)
 
 Application goals:
 •	Provide users with a shoe’s brand, name, prices, and store availabilities
